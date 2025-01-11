@@ -71,8 +71,8 @@ ENV PYTHONPATH=/app \
     PORT=8000 \
     WORKERS_PER_CORE=1 \
     MAX_WORKERS=4 \
-    TIMEOUT=120 \
-    GRACEFUL_TIMEOUT=120 \
+    TIMEOUT=300 \
+    GRACEFUL_TIMEOUT=300 \
     KEEP_ALIVE=5
 
 # Install system dependencies and security updates
@@ -126,8 +126,8 @@ CMD ["/app/.venv/bin/python", "-m", "gunicorn", \
     "--access-logfile=-", \
     "--error-logfile=-", \
     "--worker-tmp-dir=/dev/shm", \
-    "--graceful-timeout=120", \
-    "--timeout=120", \
+    "--graceful-timeout=300", \
+    "--timeout=300", \
     "--keep-alive=5", \
     "--max-requests=1000", \
     "--max-requests-jitter=50", \
