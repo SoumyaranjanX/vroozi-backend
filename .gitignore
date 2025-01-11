@@ -64,7 +64,6 @@ Thumbs.db
 
 # Dependency Management
 .poetry/
-poetry.lock
 pip-log.txt
 pip-delete-this-directory.txt
 .python-version
