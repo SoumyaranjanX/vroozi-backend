@@ -70,10 +70,11 @@ ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
     PORT=8000 \
     WORKERS_PER_CORE=1 \
-    MAX_WORKERS=4 \
+    MAX_WORKERS=2 \
     TIMEOUT=300 \
     GRACEFUL_TIMEOUT=300 \
-    KEEP_ALIVE=5
+    KEEP_ALIVE=5 \
+    WEB_CONCURRENCY=2
 
 # Install system dependencies and security updates
 RUN apt-get update && apt-get upgrade -y \
@@ -120,7 +121,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Command to run the application
 CMD ["/app/.venv/bin/python", "-m", "gunicorn", \
     "app.main:app", \
-    "--workers=4", \
+    "--workers=2", \
     "--worker-class=uvicorn.workers.UvicornWorker", \
     "--bind=0.0.0.0:8000", \
     "--access-logfile=-", \
@@ -131,4 +132,5 @@ CMD ["/app/.venv/bin/python", "-m", "gunicorn", \
     "--keep-alive=5", \
     "--max-requests=1000", \
     "--max-requests-jitter=50", \
+    "--preload", \
     "--log-level=info"]
