@@ -68,7 +68,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
-    PORT=8000 \
+    PORT=10000 \
     WORKERS_PER_CORE=1 \
     MAX_WORKERS=2 \
     TIMEOUT=300 \
@@ -97,9 +97,12 @@ RUN apt-get update && apt-get upgrade -y \
     && useradd -r -g appuser -u 1000 -d /app appuser \
     # Create necessary directories
     && mkdir -p /app/logs \
+    && mkdir -p /app/app/logs \
     && mkdir -p /app/celery_data/{in,out,processed} \
     && chown -R appuser:appuser /app \
-    && chmod -R 755 /app/celery_data
+    && chmod -R 755 /app/celery_data \
+    && chmod -R 777 /app/logs \
+    && chmod -R 777 /app/app/logs
 
 # Copy built application from builder
 COPY --from=builder /app/.venv /app/.venv
@@ -123,7 +126,7 @@ CMD ["/app/.venv/bin/python", "-m", "gunicorn", \
     "app.main:app", \
     "--workers=2", \
     "--worker-class=uvicorn.workers.UvicornWorker", \
-    "--bind=0.0.0.0:8000", \
+    "--bind=0.0.0.0:${PORT}", \
     "--access-logfile=-", \
     "--error-logfile=-", \
     "--worker-tmp-dir=/dev/shm", \
