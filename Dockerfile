@@ -115,25 +115,25 @@ WORKDIR /app
 USER appuser
 
 # Expose port
-EXPOSE 8000
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl --fail http://localhost:8000/health || exit 1
+    CMD curl --fail "http://localhost:$PORT/health" || exit 1
 
 # Command to run the application
-CMD ["/app/.venv/bin/python", "-m", "gunicorn", \
-    "app.main:app", \
-    "--workers=2", \
-    "--worker-class=uvicorn.workers.UvicornWorker", \
-    "--bind=0.0.0.0:${PORT}", \
-    "--access-logfile=-", \
-    "--error-logfile=-", \
-    "--worker-tmp-dir=/dev/shm", \
-    "--graceful-timeout=300", \
-    "--timeout=300", \
-    "--keep-alive=5", \
-    "--max-requests=1000", \
-    "--max-requests-jitter=50", \
-    "--preload", \
-    "--log-level=info"]
+CMD /app/.venv/bin/python -m gunicorn \
+    "app.main:app" \
+    --workers=2 \
+    --worker-class=uvicorn.workers.UvicornWorker \
+    --bind="0.0.0.0:$PORT" \
+    --access-logfile=- \
+    --error-logfile=- \
+    --worker-tmp-dir=/dev/shm \
+    --graceful-timeout=300 \
+    --timeout=300 \
+    --keep-alive=5 \
+    --max-requests=1000 \
+    --max-requests-jitter=50 \
+    --preload \
+    --log-level=info
