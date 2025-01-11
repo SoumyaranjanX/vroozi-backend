@@ -74,7 +74,8 @@ ENV PYTHONPATH=/app \
     TIMEOUT=300 \
     GRACEFUL_TIMEOUT=300 \
     KEEP_ALIVE=5 \
-    WEB_CONCURRENCY=2
+    WEB_CONCURRENCY=2 \
+    ENVIRONMENT=production
 
 # Install system dependencies and security updates
 RUN apt-get update && apt-get upgrade -y \
