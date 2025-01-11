@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: default
+  labels:
+    app: contract-processing-system
+    component: backend
+    tier: application
+    environment: ${ENV}
+  annotations:
+    # Prometheus monitoring configuration
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+    # AWS Load Balancer configurations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-connection-draining-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-connection-draining-timeout: "30"
+
+spec:
+  # Using ClusterIP for internal service exposure
+  type: ClusterIP
+  
+  # Port configurations for HTTP traffic and metrics
+  ports:
+    # Main application port
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+    # Prometheus metrics port
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: metrics
+  
+  # Pod selector for service-to-pod mapping
+  selector:
+    app: contract-processing-system
+    component: backend
+  
+  # Session handling configuration
+  sessionAffinity: None
+  
+  # Readiness gate configuration
+  publishNotReadyAddresses: false

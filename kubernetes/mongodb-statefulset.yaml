@@ -1,0 +1,180 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: default
+  labels:
+    app: contract-processing-system
+    component: mongodb
+    tier: database
+spec:
+  serviceName: mongodb-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: contract-processing-system
+      component: mongodb
+  template:
+    metadata:
+      labels:
+        app: contract-processing-system
+        component: mongodb
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9216"
+    spec:
+      serviceAccountName: mongodb-sa
+      # Pod anti-affinity to ensure high availability across nodes
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: contract-processing-system
+                  component: mongodb
+              topologyKey: kubernetes.io/hostname
+      
+      # Security context for the pod
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsGroup: 999
+      
+      # Init container to setup replica set and initial configuration
+      initContainers:
+        - name: init-mongodb
+          image: mongo:6.0
+          command:
+            - bash
+            - /config/init-replica.sh
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+            - name: mongodb-data
+              mountPath: /data/db
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      
+      # Main containers
+      containers:
+        # MongoDB container
+        - name: mongodb
+          image: mongo:6.0
+          args:
+            - "--config=/config/mongod.conf"
+            - "--keyFile=/secrets/keyfile"
+            - "--replSet=rs0"
+            - "--bind_ip_all"
+          ports:
+            - containerPort: 27017
+              protocol: TCP
+          
+          # Resource limits and requests
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          
+          # Volume mounts
+          volumeMounts:
+            - name: mongodb-data
+              mountPath: /data/db
+            - name: config-volume
+              mountPath: /config
+            - name: secrets-volume
+              mountPath: /secrets
+              readOnly: true
+          
+          # Environment variables
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: mongodb_root_username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: mongodb_root_password
+          
+          # Liveness probe
+          livenessProbe:
+            exec:
+              command:
+                - mongo
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          # Readiness probe
+          readinessProbe:
+            exec:
+              command:
+                - mongo
+                - --eval
+                - "rs.status().ok"
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+        
+        # MongoDB Exporter container for Prometheus metrics
+        - name: mongodb-exporter
+          image: bitnami/mongodb-exporter:0.33.0
+          ports:
+            - containerPort: 9216
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secrets
+                  key: mongodb_monitoring_uri
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      
+      # Volumes
+      volumes:
+        - name: config-volume
+          configMap:
+            name: backend-configmap
+            items:
+              - key: mongod.conf
+                path: mongod.conf
+              - key: init-replica.sh
+                path: init-replica.sh
+        - name: secrets-volume
+          secret:
+            secretName: backend-secrets
+            items:
+              - key: keyfile
+                path: keyfile
+                mode: 0400
+  
+  # Persistent volume claim templates
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 50Gi
+        storageClassName: gp3

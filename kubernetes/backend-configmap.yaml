@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: default
+  labels:
+    app: contract-processing-system
+    component: backend
+    environment: production
+    version: v1
+  annotations:
+    description: "Configuration settings for Contract Processing System backend service"
+    lastUpdated: "2023-09-21"
+data:
+  # Application Settings
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  PROJECT_NAME: "Contract Processing System"
+  API_V1_PREFIX: "/api/v1"
+  MAX_UPLOAD_SIZE: "25000000"  # 25MB in bytes
+  CORS_ORIGINS: "https://app.contract-processing-system.com"
+  API_RATE_LIMIT: "100/minute"
+  ORG_RATE_LIMIT: "1000/minute"
+
+  # Database Settings
+  MONGODB_DB_NAME: "contract_processing"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+
+  # AWS Settings
+  AWS_REGION: "us-east-1"
+  S3_BUCKET_NAME: "contract-processing-documents"
+
+  # Email Settings
+  SMTP_HOST: "smtp.ses.aws.com"
+  SMTP_PORT: "587"
+  EMAIL_FROM_ADDRESS: "no-reply@contract-processing-system.com"
+
+  # Processing Settings
+  OCR_BATCH_SIZE: "100"  # Maximum pages per OCR batch

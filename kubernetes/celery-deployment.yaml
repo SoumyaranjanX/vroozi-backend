@@ -1,0 +1,233 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: default
+  labels:
+    app: contract-processing-system
+    component: celery-worker
+    tier: backend
+  annotations:
+    kubernetes.io/change-cause: "Initial deployment"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/part-of: "contract-processing-system"
+
+spec:
+  # Initial replicas based on deployment configuration
+  replicas: 2
+
+  # Zero-downtime update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: contract-processing-system
+      component: celery-worker
+
+  template:
+    metadata:
+      labels:
+        app: contract-processing-system
+        component: celery-worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum/config: "${CONFIG_CHECKSUM}"  # Will be replaced by deployment tool
+
+    spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+
+      # Pod distribution and anti-affinity rules
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: component
+                  operator: In
+                  values:
+                  - celery-worker
+              topologyKey: "kubernetes.io/hostname"
+
+      # Container specifications
+      containers:
+      - name: celery-worker
+        image: contract-processing-backend:latest
+        imagePullPolicy: Always
+        
+        # Celery worker command with configured concurrency and task limits
+        command:
+        - "celery"
+        - "-A"
+        - "app.tasks.celery_app"
+        - "worker"
+        - "--loglevel=info"
+        - "--concurrency=4"
+        - "--max-tasks-per-child=1000"
+        - "-Q"
+        - "ocr_tasks,email_tasks,contract_tasks"
+        
+        # Resource requests and limits
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+
+        # Security context for container
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+        # Environment variables
+        env:
+        - name: REDIS_HOST
+          value: "redis-service"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: CELERY_TASK_SOFT_TIME_LIMIT
+          value: "240"
+        - name: CELERY_TASK_TIME_LIMIT
+          value: "300"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+
+        # Config and secrets mounting
+        envFrom:
+        - configMapRef:
+            name: backend-configmap
+        - secretRef:
+            name: backend-secrets
+
+        # Volume mounts for temporary files
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: worker-storage
+          mountPath: /var/lib/celery
+
+        # Liveness probe
+        livenessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - app.tasks.celery_app
+            - inspect
+            - ping
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Readiness probe
+        readinessProbe:
+          exec:
+            command:
+            - celery
+            - -A
+            - app.tasks.celery_app
+            - inspect
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+      # Volumes definition
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: worker-storage
+        emptyDir: {}
+
+      # Pod termination grace period
+      terminationGracePeriodSeconds: 60
+
+---
+# Horizontal Pod Autoscaler for Celery workers
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: celery-worker-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: celery-worker
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: External
+    external:
+      metric:
+        name: rabbitmq_queue_messages
+        selector:
+          matchLabels:
+            queue: celery
+      target:
+        type: AverageValue
+        averageValue: 100
+
+---
+# Network Policy for Celery workers
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: celery-worker-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      component: celery-worker
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: contract-processing-system
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis-service
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 169.254.0.0/16
+        - 172.16.0.0/12
+    ports:
+    - protocol: TCP
+      port: 443

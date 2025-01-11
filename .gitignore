@@ -1,0 +1,113 @@
+# Python Bytecode and Compilation Artifacts
+*.py[cod]
+__pycache__/
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual Environments - Cross Platform Support
+venv/
+env/
+.env/
+.venv/
+ENV/
+python-env/
+
+# Environment Variables and Configuration
+.env
+*.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# IDE and Editor Files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+.project
+.settings/
+.classpath
+
+# Testing and Code Coverage
+.coverage
+coverage.xml
+coverage/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+nosetests.xml
+.hypothesis/
+
+# Logs and Temporary Files
+logs/
+*.log
+local_data/
+tmp/
+temp/
+.DS_Store
+Thumbs.db
+
+# Dependency Management
+.poetry/
+poetry.lock
+pip-log.txt
+pip-delete-this-directory.txt
+.python-version
+.pdm.toml
+requirements.txt.lock
+
+# Security and Certificates
+security-report/
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+security-scan-results/
+
+# Build and Distribution
+__pypackages__/
+.pytest_cache/
+.ruff_cache/
+.coverage.*
+.dmypy.json
+dmypy.json
+
+# Local Development
+.local/
+instance/
+.webassets-cache/
+celerybeat-schedule
+celerybeat.pid
+
+# Documentation
+docs/_build/
+site/
+
+# Project-specific ignores
+local_settings.py
+db.sqlite3
+media/
+
+# Keep these files
+!.gitkeep
+!.dockerignore
+!.editorconfig
+!.env.example
+!pyproject.toml

@@ -1,0 +1,294 @@
+{% extends "email/base.html" %}
+
+{# Template Version: 1.0.0 #}
+{# Jinja2 Version: 3.1.2 #}
+
+{% block styles %}
+{# Custom styles for PO template extending base styles #}
+<style>
+    /* PO-specific styles */
+    .po-container {
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        background: var(--background-color, #ffffff);
+        color: var(--text-color, #2e2e2e);
+        font-family: var(--font-family, Arial, Helvetica, system-ui, -apple-system, sans-serif);
+    }
+
+    /* Custom Properties */
+    :root {
+        --primary-color: #ebb502;
+        --secondary-color: #2e2e2e;
+        --corporate-color: #0F2374;
+        --background-color: #ffffff;
+        --text-color: #2e2e2e;
+        --border-color: #cccccc;
+        --error-color: #dc3545;
+        --success-color: #28a745;
+        
+        /* Typography Scale */
+        --heading-size: clamp(20px, 2.5vw, 24px);
+        --subheading-size: clamp(16px, 2vw, 20px);
+        --body-size: clamp(14px, 1.5vw, 16px);
+        --small-size: clamp(12px, 1.25vw, 14px);
+    }
+
+    /* High Contrast Mode Support */
+    @media (prefers-contrast: high) {
+        :root {
+            --text-color: #000000;
+            --background-color: #ffffff;
+            --border-color: #000000;
+        }
+    }
+
+    /* Document Header */
+    .po-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        padding: 2rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .company-logo {
+        max-width: 150px;
+        height: auto;
+    }
+
+    .po-details {
+        text-align: right;
+    }
+
+    /* Vendor Section */
+    .vendor-section {
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+
+    /* Line Items Table */
+    .line-items {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 2rem 0;
+    }
+
+    .line-items th,
+    .line-items td {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        text-align: left;
+    }
+
+    .line-items th {
+        background-color: var(--corporate-color);
+        color: var(--background-color);
+    }
+
+    /* Responsive Design */
+    @media screen and (max-width: 479px) {
+        .po-header {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .po-details {
+            text-align: left;
+        }
+
+        .line-items {
+            display: block;
+            overflow-x: auto;
+        }
+    }
+
+    /* Print Styles */
+    @media print {
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        .po-container {
+            font-size: 12pt;
+        }
+
+        .line-items {
+            page-break-inside: avoid;
+        }
+
+        a[href]::after {
+            content: " (" attr(href) ")";
+        }
+    }
+
+    /* Document Sections */
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .vendor-info,
+    .buyer-info {
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--background-color);
+    }
+
+    .payment-terms {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--background-color);
+    }
+
+    .terms-content {
+        margin-top: 1rem;
+        white-space: pre-wrap;
+    }
+
+    /* Responsive Design */
+    @media screen and (max-width: 768px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Print Styles */
+    @media print {
+        .info-grid {
+            page-break-inside: avoid;
+        }
+        
+        .payment-terms {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="po-container" role="document">
+    {# Skip Navigation for Accessibility #}
+    <a href="#main-content" class="visually-hidden">Skip to main content</a>
+
+    <header class="po-header" role="banner">
+        <div class="company-info">
+            {% if company_logo %}
+            <img src="{{ company_logo | safe }}" 
+                 alt="{{ company_name }} Logo" 
+                 class="company-logo" 
+                 width="150" 
+                 height="auto" 
+                 loading="lazy">
+            {% endif %}
+            <div class="company-details">
+                <h1>{{ company_name | default('Company Name') | escape }}</h1>
+                <address>{{ company_address | default('') | escape }}</address>
+                <p>{{ company_contact | default('') | escape }}</p>
+            </div>
+        </div>
+
+        <div class="po-details" role="contentinfo">
+            <h2>Purchase Order</h2>
+            <p><strong>PO Number:</strong> {{ po_number | escape }}</p>
+            <p><strong>Date:</strong> {{ po_date | date }}</p>
+            {% if contract_reference %}
+            <p><strong>Reference:</strong> {{ contract_reference | escape }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    <main id="main-content" class="vendor-section" role="main">
+        <div class="info-grid">
+            <section class="vendor-info" aria-labelledby="vendor-title">
+                <h2 id="vendor-title">Vendor Information</h2>
+                <address>
+                    <strong>{{ po_data.vendor_name | required | escape }}</strong><br>
+                    {{ po_data.vendor_address | required | escape }}<br>
+                    {% if po_data.vendor_contact %}
+                    {{ po_data.vendor_contact | escape }}
+                    {% endif %}
+                </address>
+            </section>
+
+            <section class="buyer-info" aria-labelledby="buyer-title">
+                <h2 id="buyer-title">Buyer Information</h2>
+                <address>
+                    <strong>{{ po_data.buyer_name | required | escape }}</strong><br>
+                    {{ po_data.buyer_address | required | escape }}<br>
+                    {% if po_data.buyer_contact %}
+                    {{ po_data.buyer_contact | escape }}
+                    {% endif %}
+                </address>
+            </section>
+        </div>
+
+        <section class="payment-terms" aria-labelledby="terms-title">
+            <h2 id="terms-title">Payment Terms</h2>
+            <div class="terms-content">
+                {{ po_data.payment_terms | required | escape }}
+            </div>
+        </section>
+
+        <section class="line-items-section" aria-labelledby="items-title">
+            <h2 id="items-title">Order Details</h2>
+            <table class="line-items" role="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Item</th>
+                        <th scope="col">Description</th>
+                        <th scope="col">Quantity</th>
+                        <th scope="col">Unit Price</th>
+                        <th scope="col">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in po_data.line_items %}
+                    <tr>
+                        <td>{{ item.name | escape }}</td>
+                        <td>{{ item.description | escape }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.unit_price | currency }}</td>
+                        <td>{{ item.total | currency }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4"><strong>Subtotal</strong></td>
+                        <td>{{ po_data.subtotal | currency }}</td>
+                    </tr>
+                    {% if po_data.tax %}
+                    <tr>
+                        <td colspan="4"><strong>Tax</strong></td>
+                        <td>{{ po_data.tax | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan="4"><strong>Total</strong></td>
+                        <td>{{ po_data.total_amount | currency }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </section>
+
+        {% if po_data.terms_and_conditions %}
+        <section class="terms" aria-labelledby="terms-title">
+            <h2 id="terms-title">Terms and Conditions</h2>
+            <div>{{ po_data.terms_and_conditions | safe }}</div>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer class="po-footer" role="contentinfo">
+        <p>This is an official purchase order from {{ company_name | escape }}</p>
+        <p>Generated on {{ po_date | date }} | PO #{{ po_number | escape }}</p>
+    </footer>
+</div>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends 'email/base.html' %}
+
+{# Add custom styles for this template #}
+{% block styles %}
+<style>
+    /* Contract details table styles */
+    .contract-details {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 24px 0;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .contract-details td {
+        padding: 12px;
+        border-bottom: 1px solid #eeeeee;
+    }
+
+    .contract-details td:first-child {
+        font-weight: bold;
+        width: 40%;
+    }
+
+    /* Custom button styles */
+    .action-button {
+        display: inline-block;
+        background-color: #ebb502;
+        color: #2e2e2e !important;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: bold;
+        margin: 24px 0;
+        text-align: center;
+        mso-padding-alt: 0;
+        text-underline: none;
+    }
+
+    /* Responsive styles for contract details */
+    @media screen and (max-width: 479px) {
+        .contract-details td {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+        }
+
+        .contract-details td:first-child {
+            background-color: #f1f3f5;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+
+        .action-button {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{# Main content section #}
+<div role="article" aria-label="Contract Processing Notification">
+    {# Header section #}
+    <h1 style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 24px; color: #0F2374; margin-bottom: 24px; text-align: center; line-height: 1.3;">
+        Contract Processing Complete
+    </h1>
+
+    {# Greeting section #}
+    <p style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5; color: #2e2e2e; margin-bottom: 16px;">
+        Dear {{ user_name|default('Valued User') }},
+    </p>
+
+    {# Main message #}
+    <p style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5; color: #2e2e2e; margin-bottom: 24px;">
+        We're pleased to inform you that your contract has been successfully processed through our system.
+    </p>
+
+    {# Contract details table #}
+    <table class="contract-details" role="presentation" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+            <td>Contract ID:</td>
+            <td>{{ contract_id }}</td>
+        </tr>
+        <tr>
+            <td>Contract Name:</td>
+            <td>{{ contract_data.name|e }}</td>
+        </tr>
+        <tr>
+            <td>Processing Date:</td>
+            <td>{{ contract_data.processed_at|default(now())|date }}</td>
+        </tr>
+        <tr>
+            <td>Status:</td>
+            <td>
+                <span style="color: #28a745;">{{ contract_data.status|default('Completed') }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td>Accuracy Score:</td>
+            <td>{{ contract_data.accuracy_score|default(95) }}%</td>
+        </tr>
+    </table>
+
+    {# Call to action button #}
+    <!--[if mso]>
+    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ review_url }}" style="height:40px;v-text-anchor:middle;width:200px;" arcsize="10%" stroke="f" fillcolor="#ebb502">
+        <w:anchorlock/>
+        <center>
+    <![endif]-->
+    <a href="{{ review_url }}"
+       class="action-button"
+       target="_blank"
+       role="button"
+       aria-label="Click to review extracted contract data">
+        Review Extracted Data
+    </a>
+    <!--[if mso]>
+        </center>
+    </v:roundrect>
+    <![endif]-->
+
+    {# Additional information #}
+    <p style="font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5; color: #2e2e2e; margin-top: 24px;">
+        Please review the extracted data to ensure accuracy. If you notice any discrepancies, you can make corrections directly in the system.
+    </p>
+</div>
+{% endblock %}
+
+{% block footer %}
+<div style="text-align: center; font-size: 14px; color: #666666; padding: 24px; border-top: 1px solid #eeeeee;">
+    <p style="margin-bottom: 8px;">
+        If you did not request this contract processing, please contact support immediately.
+    </p>
+    <p style="margin-bottom: 8px;">
+        This is an automated message, please do not reply directly to this email.
+    </p>
+    <p style="margin-bottom: 0;">
+        © {{ current_year }} Contract Processing System. All rights reserved.
+    </p>
+</div>
+{% endblock %}

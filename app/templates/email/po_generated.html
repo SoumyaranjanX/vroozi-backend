@@ -1,0 +1,125 @@
+{% extends 'email/base.html' %}
+
+{% block styles %}
+/* PO Generated Email specific styles */
+.po-details {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 24px 0;
+}
+
+.po-details-row {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.po-details-label {
+    color: #666666;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.po-details-value {
+    color: #2e2e2e;
+    font-weight: bold;
+}
+
+.download-button {
+    background-color: #ebb502;
+    border-radius: 4px;
+    color: #ffffff;
+    display: inline-block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.5;
+    margin: 24px 0;
+    mso-padding-alt: 12px 24px;
+    padding: 12px 24px;
+    text-align: center;
+    text-decoration: none;
+    width: auto;
+}
+
+/* Outlook-specific button styles */
+.button-wrapper {
+    mso-hide: all;
+}
+
+.fallback-button {
+    display: none;
+}
+
+[owa] .fallback-button {
+    display: block !important;
+    background-color: #ebb502 !important;
+    border: 2px solid #ebb502 !important;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 479px) {
+    .po-details {
+        padding: 12px;
+        margin: 16px 0;
+    }
+    
+    .download-button {
+        display: block;
+        text-align: center;
+        margin: 16px 0;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<h1 style="font-size: 24px; color: #0F2374; margin-bottom: 24px; font-weight: bold; font-family: Arial, Helvetica, sans-serif;">Purchase Order Generated Successfully</h1>
+
+<p style="margin-bottom: 16px;">Dear {{ recipient_name }},</p>
+
+<p style="margin-bottom: 24px;">Your purchase order has been successfully generated.</p>
+
+<div class="po-details">
+    <div class="po-details-row">
+        <div class="po-details-label">Purchase Order Number</div>
+        <div class="po-details-value">{{ po_number }}</div>
+    </div>
+    <div class="po-details-row">
+        <div class="po-details-label">Generation Date</div>
+        <div class="po-details-value">{{ generation_date | date(format='%Y-%m-%d', locale=user_locale) }}</div>
+    </div>
+    <div class="po-details-row">
+        <div class="po-details-label">Status</div>
+        <div class="po-details-value">{{ status }}</div>
+    </div>
+    <div class="po-details-row">
+        <div class="po-details-label">Total Amount</div>
+        <div class="po-details-value">{{ total_amount | currency(locale=user_locale) }}</div>
+    </div>
+</div>
+
+<p style="margin-bottom: 16px;">You can download your purchase order using the button below:</p>
+
+<!--[if mso]>
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ download_url | safe }}" style="height:40px;v-text-anchor:middle;width:200px;" arcsize="10%" stroke="f" fillcolor="#ebb502">
+    <w:anchorlock/>
+    <center>
+<![endif]-->
+<a href="{{ download_url | safe }}" class="download-button" target="_blank" role="button">
+    Download Purchase Order
+</a>
+<!--[if mso]>
+    </center>
+</v:roundrect>
+<![endif]-->
+
+<p style="margin-bottom: 8px; color: #666666; font-size: 14px;">This download link will expire in 24 hours.</p>
+
+<p style="margin-bottom: 24px;">If you have any questions, please contact our support team at {{ support_email }}.</p>
+{% endblock %}
+
+{% block footer %}
+<p style="margin-bottom: 8px;">{{ company_name }}</p>
+<p style="margin-bottom: 8px;">{{ support_email }}</p>
+<p style="margin-bottom: 0;">© {{ current_year }} All rights reserved.</p>
+{% endblock %}

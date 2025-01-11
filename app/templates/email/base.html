@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>{{ title | default('Contract Processing System Notification') }}</title>
+    <!--[if mso]>
+    <xml>
+        <o:OfficeDocumentSettings>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+    </xml>
+    <![endif]-->
+    <style>
+        /* Base styles */
+        :root {
+            color-scheme: light;
+            supported-color-schemes: light;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        
+        /* Typography */
+        body, table, td {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #2e2e2e;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin: 0 0 24px 0;
+            color: #0F2374;
+        }
+        
+        h2 {
+            font-size: 20px;
+            margin: 0 0 16px 0;
+            color: #0F2374;
+        }
+        
+        p {
+            margin: 0 0 16px 0;
+        }
+        
+        /* Layout */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        
+        .header {
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .content-wrapper {
+            padding: 24px;
+            background-color: #ffffff;
+        }
+        
+        .footer-wrapper {
+            padding: 24px;
+            background-color: #f8f9fa;
+            text-align: center;
+            color: #666666;
+            font-size: 14px;
+        }
+        
+        /* Images */
+        img {
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+        }
+        
+        .logo {
+            display: block;
+            margin: 0 auto;
+            padding: 24px;
+            max-width: 150px;
+            width: auto;
+            height: auto;
+        }
+        
+        /* Buttons */
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #ebb502;
+            color: #2e2e2e;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            mso-padding-alt: 0;
+            text-underline: none;
+        }
+        
+        /* Responsive styles */
+        @media screen and (max-width: 479px) {
+            body, table, td {
+                font-size: 14px !important;
+            }
+            
+            .container {
+                padding: 16px !important;
+            }
+            
+            .header, .content-wrapper, .footer-wrapper {
+                padding: 16px !important;
+            }
+            
+            .logo {
+                padding: 16px !important;
+                max-width: 120px !important;
+            }
+        }
+        
+        @media screen and (min-width: 480px) and (max-width: 767px) {
+            body, table, td {
+                font-size: 15px !important;
+            }
+            
+            .container {
+                padding: 20px !important;
+            }
+            
+            .header, .content-wrapper, .footer-wrapper {
+                padding: 20px !important;
+            }
+        }
+        
+        {% block styles %}{% endblock %}
+    </style>
+</head>
+<body style="margin: 0; padding: 0; width: 100%; word-break: break-word; -webkit-font-smoothing: antialiased; background-color: #f8f9fa;">
+    <!--[if mso]>
+    <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" align="center">
+        <tr>
+            <td>
+    <![endif]-->
+    <div class="container">
+        <div class="header" role="banner">
+            <img src="{{ company_logo }}" alt="Company Logo" class="logo" role="img">
+        </div>
+        
+        <div class="content-wrapper" role="main">
+            {% block content %}{% endblock %}
+        </div>
+        
+        <div class="footer-wrapper" role="contentinfo">
+            {% block footer %}
+            <p style="margin-bottom: 8px;">This is an automated message from the Contract Processing System.</p>
+            <p style="margin-bottom: 0;">© {{ now().year }} All rights reserved.</p>
+            {% endblock %}
+        </div>
+    </div>
+    <!--[if mso]>
+            </td>
+        </tr>
+    </table>
+    <![endif]-->
+</body>
+</html>

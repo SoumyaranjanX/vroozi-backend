@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+  namespace: default
+  labels:
+    app: contract-processing-system
+    component: redis
+    tier: cache
+  annotations:
+    kubernetes.io/change-cause: "Initial Redis deployment"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9121"
+spec:
+  replicas: 3  # Ensuring high availability with 3 node minimum
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime updates
+  selector:
+    matchLabels:
+      app: contract-processing-system
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: contract-processing-system
+        component: redis
+    spec:
+      # Pod anti-affinity to ensure high availability across nodes
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: contract-processing-system
+                  component: redis
+      containers:
+        - name: redis
+          image: redis:7.0-alpine  # Specified version requirement
+          command: ["redis-server"]
+          args: ["--appendonly", "yes"]  # Enable AOF persistence
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "500m"     # Equivalent to Cache.r5.large specifications
+              memory: "2Gi"
+            limits:
+              cpu: "1000m"
+              memory: "4Gi"
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999  # Redis default non-root user
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /usr/local/etc/redis
+        # Redis Exporter sidecar for Prometheus metrics
+        - name: redis-exporter
+          image: oliver006/redis_exporter:v1.44.0
+          ports:
+            - containerPort: 9121
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data-pvc
+        - name: redis-config
+          configMap:
+            name: redis-config
