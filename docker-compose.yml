@@ -9,7 +9,7 @@ services:
         - BUILD_DATE=${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
         - VCS_REF=${VCS_REF:-$(git rev-parse --short HEAD)}
     ports:
-      - "8000:8000"
+      - "80:80"
     volumes:
       - ./:/app
       - /app/.venv  # Preserve virtual environment
@@ -38,7 +38,7 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS}
       - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE}
       - LOG_LEVEL=${LOG_LEVEL}
-      - PORT=8000
+      - PORT=80
       - MAX_WORKERS=4
       - TIMEOUT=120
       - GRACEFUL_TIMEOUT=120
@@ -47,7 +47,7 @@ services:
       mongodb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
       interval: 30s
       timeout: 10s
       retries: 3

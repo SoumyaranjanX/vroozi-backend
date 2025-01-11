@@ -68,7 +68,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
-    PORT=8000 \
+    PORT=80 \
     WORKERS_PER_CORE=1 \
     MAX_WORKERS=4 \
     TIMEOUT=120 \
@@ -97,8 +97,11 @@ RUN apt-get update && apt-get upgrade -y \
     # Create necessary directories
     && mkdir -p /app/logs \
     && mkdir -p /app/celery_data/{in,out,processed} \
+    # Create app/logs directory with proper permissions
+    && mkdir -p /app/app/logs \
     && chown -R appuser:appuser /app \
-    && chmod -R 755 /app/celery_data
+    && chmod -R 755 /app/celery_data \
+    && chmod -R 755 /app/app/logs
 
 # Copy built application from builder
 COPY --from=builder /app/.venv /app/.venv
@@ -111,18 +114,18 @@ WORKDIR /app
 USER appuser
 
 # Expose port
-EXPOSE 8000
+EXPOSE 80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl --fail http://localhost:8000/health || exit 1
+    CMD curl --fail http://localhost:80/health || exit 1
 
 # Command to run the application
 CMD ["/app/.venv/bin/python", "-m", "gunicorn", \
     "app.main:app", \
     "--workers=4", \
     "--worker-class=uvicorn.workers.UvicornWorker", \
-    "--bind=0.0.0.0:8000", \
+    "--bind=0.0.0.0:80", \
     "--access-logfile=-", \
     "--error-logfile=-", \
     "--worker-tmp-dir=/dev/shm", \
