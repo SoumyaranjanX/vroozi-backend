@@ -79,7 +79,7 @@ services:
       - /app/.venv  # Preserve virtual environment
     environment:
       - ENVIRONMENT=${ENVIRONMENT}
-      - MONGODB_URL=mongodb://mongodb:27017
+      - MONGODB_URL=mongodb://mongodb:27017/?replicaSet=rs0
       - MONGODB_DB_NAME=${MONGODB_DB_NAME}
       - USE_REDIS=false
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
