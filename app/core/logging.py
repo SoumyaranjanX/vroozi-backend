@@ -36,7 +36,7 @@ LOG_FORMAT = {
 }
 
 LOG_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
-LOG_FILE_PATH = '/app/logs'
+LOG_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
 AUDIT_LOG_FILE = 'security_audit.log'
 
 class JsonFormatter(logging.Formatter):

@@ -68,14 +68,12 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
-    PORT=10000 \
+    PORT=8000 \
     WORKERS_PER_CORE=1 \
-    MAX_WORKERS=2 \
-    TIMEOUT=300 \
-    GRACEFUL_TIMEOUT=300 \
-    KEEP_ALIVE=5 \
-    WEB_CONCURRENCY=2 \
-    ENVIRONMENT=production
+    MAX_WORKERS=4 \
+    TIMEOUT=120 \
+    GRACEFUL_TIMEOUT=120 \
+    KEEP_ALIVE=5
 
 # Install system dependencies and security updates
 RUN apt-get update && apt-get upgrade -y \
@@ -98,12 +96,9 @@ RUN apt-get update && apt-get upgrade -y \
     && useradd -r -g appuser -u 1000 -d /app appuser \
     # Create necessary directories
     && mkdir -p /app/logs \
-    && mkdir -p /app/app/logs \
     && mkdir -p /app/celery_data/{in,out,processed} \
     && chown -R appuser:appuser /app \
-    && chmod -R 755 /app/celery_data \
-    && chmod -R 777 /app/logs \
-    && chmod -R 777 /app/app/logs
+    && chmod -R 755 /app/celery_data
 
 # Copy built application from builder
 COPY --from=builder /app/.venv /app/.venv
@@ -116,25 +111,24 @@ WORKDIR /app
 USER appuser
 
 # Expose port
-EXPOSE $PORT
+EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl --fail "http://localhost:$PORT/health" || exit 1
+    CMD curl --fail http://localhost:8000/health || exit 1
 
 # Command to run the application
-CMD /app/.venv/bin/python -m gunicorn \
-    "app.main:app" \
-    --workers=2 \
-    --worker-class=uvicorn.workers.UvicornWorker \
-    --bind="0.0.0.0:$PORT" \
-    --access-logfile=- \
-    --error-logfile=- \
-    --worker-tmp-dir=/dev/shm \
-    --graceful-timeout=300 \
-    --timeout=300 \
-    --keep-alive=5 \
-    --max-requests=1000 \
-    --max-requests-jitter=50 \
-    --preload \
-    --log-level=info
+CMD ["/app/.venv/bin/python", "-m", "gunicorn", \
+    "app.main:app", \
+    "--workers=4", \
+    "--worker-class=uvicorn.workers.UvicornWorker", \
+    "--bind=0.0.0.0:8000", \
+    "--access-logfile=-", \
+    "--error-logfile=-", \
+    "--worker-tmp-dir=/dev/shm", \
+    "--graceful-timeout=120", \
+    "--timeout=120", \
+    "--keep-alive=5", \
+    "--max-requests=1000", \
+    "--max-requests-jitter=50", \
+    "--log-level=info"]
