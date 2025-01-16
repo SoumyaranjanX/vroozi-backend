@@ -447,28 +447,37 @@ class OCRService:
 
         # Extract party information with improved patterns
         party_sections = re.split(r'\n\s*\n', text)  # Split by double newlines to find sections
-        party_labels = {
-            "vendor": r"(?:Provider|Vendor|Seller|Contractor|Service\s+Provider|Supplier)[\s:]+([^\n]+(?:\n(?!\n).+)*)",
-            "buyer": r"(?:Client|Customer|Buyer|Purchaser)[\s:]+([^\n]+(?:\n(?!\n).+)*)"
-        }
         
-        for role, pattern in party_labels.items():
-            for section in party_sections:
-                if match := re.search(pattern, section, re.IGNORECASE | re.MULTILINE):
-                    party_text = match.group(1).strip()
-                    if party_text:
-                        # Try to extract structured information
-                        name_pattern = r"([^,\n]+)"
-                        address_pattern = r"(?:located|based|address|at)\s+([^,\n]+(?:,\s*[^,\n]+)*)"
-                        
-                        name_match = re.match(name_pattern, party_text)
-                        address_match = re.search(address_pattern, party_text, re.IGNORECASE)
-                        
+        # Simplified but comprehensive party extraction pattern
+        party_pattern = r"(Provider|Client):\s*([^,]+),\s*a\s+([^,]+),\s*with\s+its\s+principal\s+place\s+of\s+business\s+at\s+([^\.]+)"
+        
+        for section in party_sections:
+            if matches := re.finditer(party_pattern, section, re.IGNORECASE):
+                for match in matches:
+                    role, name, legal_entity, address = match.groups()
+                    if name:
                         party_info = {
-                            "name": name_match.group(1).strip() if name_match else party_text.split(',')[0].strip(),
-                            "role": role,
-                            "address": address_match.group(1).strip() if address_match else 
-                                     ', '.join(party_text.split(',')[1:]).strip() if ',' in party_text else None
+                            "name": name.strip(),
+                            "role": role.lower(),
+                            "legal_entity": legal_entity.strip(),
+                            "address": address.strip()
+                        }
+                        parsed_data["parties"].append(party_info)
+
+        # If no parties found with the main pattern, try alternative patterns
+        if not parsed_data["parties"]:
+            # Alternative pattern for agreements that start with "between" or "by and between"
+            alt_party_pattern = r"between:\s*([^,]+),\s*a\s+([^,]+),\s*with\s+its\s+principal\s+place\s+of\s+business\s+at\s+([^\.]+)"
+            
+            if matches := re.finditer(alt_party_pattern, text, re.IGNORECASE):
+                for i, match in enumerate(matches):
+                    name, legal_entity, address = match.groups()
+                    if name:
+                        party_info = {
+                            "name": name.strip(),
+                            "role": "provider" if i == 0 else "client",
+                            "legal_entity": legal_entity.strip(),
+                            "address": address.strip()
                         }
                         parsed_data["parties"].append(party_info)
 
