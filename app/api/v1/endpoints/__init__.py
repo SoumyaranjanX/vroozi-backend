@@ -19,6 +19,7 @@ from .auth import router as auth_router
 from .contracts import router as contracts_router
 from .purchase_orders import router as purchase_orders_router
 from .ocr import router as ocr_router
+from .dashboard import router as dashboard_router
 
 # Configure structured logging
 logger = structlog.get_logger(__name__)
@@ -40,6 +41,7 @@ ENDPOINT_LATENCY = Histogram(
     ['endpoint', 'method']
 )
 
+
 @CircuitBreaker(failure_threshold=5, recovery_timeout=60)
 def initialize_routers() -> Dict[str, APIRouter]:
     """
@@ -58,7 +60,8 @@ def initialize_routers() -> Dict[str, APIRouter]:
             'auth': auth_router,
             'contracts': contracts_router,
             'purchase_orders': purchase_orders_router,
-            'ocr': ocr_router
+            'ocr': ocr_router,
+            'dashboard': dashboard_router
         }
 
         # Validate router configurations
@@ -88,6 +91,7 @@ def initialize_routers() -> Dict[str, APIRouter]:
             error=str(e)
         )
         raise RuntimeError(f"Router initialization failed: {str(e)}")
+
 
 async def monitor_requests(request, call_next):
     """
@@ -140,8 +144,9 @@ initialized_routers = initialize_routers()
 # Export routers and version
 __all__ = [
     'auth_router',
-    'contracts_router', 
+    'contracts_router',
     'purchase_orders_router',
     'ocr_router',
+    'dashboard_router',
     'API_VERSION'
 ]

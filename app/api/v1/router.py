@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.contracts import router as contracts_router
+from app.api.v1.endpoints.dashboard import router as dashboard_router
 from app.api.v1.endpoints.purchase_orders import router as po_router
 from app.api.v1.endpoints.ocr import router as ocr_router
 from app.api.v1.endpoints.users import router as users_router
@@ -21,6 +22,12 @@ api_router.include_router(
     auth_router,
     prefix="/auth",
     tags=["Authentication"]
+)
+
+api_router.include_router(
+    dashboard_router,
+    prefix="/dashboard",
+    tags=["Dashboard"]
 )
 
 api_router.include_router(

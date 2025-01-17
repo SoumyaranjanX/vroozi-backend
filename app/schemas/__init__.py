@@ -54,6 +54,27 @@ from .ocr import (
     OCRStatus
 )
 
+from .ocr import (
+    OCRRequest,
+    OCRResponse,
+    OCRStatus
+)
+
+# Internal imports for dashboard schemas
+from .dashboard import (
+    # Status metrics models
+    ActiveContractsMetrics,
+    ProcessingQueueMetrics,
+    PendingReviewMetrics,
+    POsGeneratedMetrics,
+
+    # Main dashboard models
+    ContractStatusCount,
+    ContractStatusDetails,
+    StatusDistribution,
+    DashboardMetrics
+)
+
 # Export all schemas
 __all__ = [
     # Authentication schemas
@@ -61,13 +82,13 @@ __all__ = [
     "TokenResponse",
     "RefreshTokenRequest",
     "PasswordChangeRequest",
-    
+
     # User management schemas
     "UserBase",
     "UserCreate",
     "UserUpdate",
     "UserInDB",
-    
+
     # Contract processing schemas
     "ContractBase",
     "ContractCreate",
@@ -76,7 +97,7 @@ __all__ = [
     "ContractValidationRequest",
     "ContractValidationResponse",
     "BatchUploadResponse",
-    
+
     # Purchase order schemas
     "PurchaseOrderBase",
     "PurchaseOrderCreate",
@@ -84,9 +105,19 @@ __all__ = [
     "PurchaseOrderResponse",
     "PurchaseOrderValidationRequest",
     "PurchaseOrderValidationResponse",
-    
+
     # OCR processing schemas
     "OCRRequest",
     "OCRResponse",
-    "OCRStatus"
+    "OCRStatus",
+
+    # Dashboard schemas
+    "ActiveContractsMetrics",
+    "ProcessingQueueMetrics",
+    "PendingReviewMetrics",
+    "POsGeneratedMetrics",
+    "ContractStatusCount",
+    "ContractStatusDetails",
+    "StatusDistribution",
+    "DashboardMetrics"
 ]

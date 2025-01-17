@@ -13,9 +13,11 @@ from app.services.ocr_service import OCRService
 from app.services.s3_service import S3Service
 from app.services.purchase_order_service import PurchaseOrderService
 from app.services.email_service import EmailService
+from app.services.dashboard_service import DashboardService
 from app.core.config import get_settings
 import logging
 from app.db.mongodb import get_database
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -27,6 +29,20 @@ _s3_service: Optional[S3Service] = None
 _po_service: Optional[PurchaseOrderService] = None
 _contract_service: Optional[ContractService] = None
 _email_service: Optional[EmailService] = None
+_dashboard_service: Optional[DashboardService] = None
+
+
+async def get_dashboard_service(db: AsyncIOMotorDatabase = Depends(get_database)) -> DashboardService:
+    """Get or create Dashboard service instance with database connection."""
+    try:
+        return DashboardService(db=db)
+    except Exception as e:
+        logger.error(f"Failed to initialize Dashboard service: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Dashboard service unavailable"
+        )
+
 
 def get_email_service() -> EmailService:
     """Get or create Email service instance."""
@@ -43,19 +59,6 @@ def get_email_service() -> EmailService:
             )
     return _email_service
 
-def get_ocr_service() -> OCRService:
-    """Get or create OCR service instance."""
-    global _ocr_service
-    if _ocr_service is None:
-        try:
-            _ocr_service = OCRService()
-        except Exception as e:
-            logger.error(f"Failed to initialize OCR service: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="OCR service unavailable"
-            )
-    return _ocr_service
 
 def get_s3_service() -> S3Service:
     """Get or create S3 service instance."""
@@ -72,21 +75,22 @@ def get_s3_service() -> S3Service:
             )
     return _s3_service
 
+
 async def get_po_service(
     s3_service: S3Service = Depends(),
     email_service: EmailService = Depends(),
-    settings = Depends(get_settings),
-    db = Depends(get_database)
+    settings=Depends(get_settings),
+    db=Depends(get_database)
 ) -> PurchaseOrderService:
     """
     Get configured purchase order service instance.
-    
+
     Args:
         s3_service: S3 service instance
         email_service: Email service instance
         settings: Application settings
         db: Database instance
-        
+
     Returns:
         PurchaseOrderService: Configured service instance
     """
@@ -96,6 +100,22 @@ async def get_po_service(
         config=settings.dict(),
         db=db
     )
+
+
+def get_ocr_service() -> OCRService:
+    """Get or create OCR service instance."""
+    global _ocr_service
+    if _ocr_service is None:
+        try:
+            _ocr_service = OCRService()
+        except Exception as e:
+            logger.error(f"Failed to initialize OCR service: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="OCR service unavailable"
+            )
+    return _ocr_service
+
 
 def get_contract_service(
     s3_service: S3Service = Depends(get_s3_service),
@@ -117,4 +137,84 @@ def get_contract_service(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Contract service unavailable"
             )
-    return _contract_service 
+    return _contract_service
+
+
+def get_ocr_service() -> OCRService:
+    """Get or create OCR service instance."""
+    global _ocr_service
+    if _ocr_service is None:
+        try:
+            _ocr_service = OCRService()
+        except Exception as e:
+            logger.error(f"Failed to initialize OCR service: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="OCR service unavailable"
+            )
+    return _ocr_service
+
+
+def get_s3_service() -> S3Service:
+    """Get or create S3 service instance."""
+    global _s3_service
+    if _s3_service is None:
+        try:
+            settings = get_settings()
+            _s3_service = S3Service()
+        except Exception as e:
+            logger.error(f"Failed to initialize S3 service: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Storage service unavailable"
+            )
+    return _s3_service
+
+
+async def get_po_service(
+    s3_service: S3Service = Depends(),
+    email_service: EmailService = Depends(),
+    settings=Depends(get_settings),
+    db=Depends(get_database)
+) -> PurchaseOrderService:
+    """
+    Get configured purchase order service instance.
+
+    Args:
+        s3_service: S3 service instance
+        email_service: Email service instance
+        settings: Application settings
+        db: Database instance
+
+    Returns:
+        PurchaseOrderService: Configured service instance
+    """
+    return PurchaseOrderService(
+        s3_service=s3_service,
+        email_service=email_service,
+        config=settings.dict(),
+        db=db
+    )
+
+
+def get_contract_service(
+    s3_service: S3Service = Depends(get_s3_service),
+    po_service: PurchaseOrderService = Depends(get_po_service),
+    ocr_service: Optional[OCRService] = Depends(get_ocr_service)
+) -> ContractService:
+    """Get or create Contract service instance."""
+    global _contract_service
+    if _contract_service is None:
+        try:
+            _contract_service = ContractService(
+                ocr_service=ocr_service,
+                s3_service=s3_service,
+                po_service=po_service
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize Contract service: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Contract service unavailable"
+            )
+    return _contract_service

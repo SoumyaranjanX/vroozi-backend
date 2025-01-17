@@ -110,4 +110,3 @@ media/
 !.editorconfig
 !.env.example
 !pyproject.toml
-/.cache

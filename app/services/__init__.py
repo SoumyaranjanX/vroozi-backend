@@ -14,5 +14,6 @@ __all__ = [
     "EmailService",
     "S3Service",
     "UserService",
-    "PurchaseOrderService"
+    "PurchaseOrderService",
+    "DashboardService"
 ]

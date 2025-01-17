@@ -24,6 +24,7 @@ from app.core.security import (
 from app.core.token_validation import validate_token, validate_refresh_token
 from app.db.mongodb import get_database
 from app.schemas.auth import LoginRequest, LogoutRequest
+from app.core.config import get_settings
 
 # Configure module logger
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ security_logger = SecurityLogger()
 # Rate limiting configuration
 rate_limiter = Limiter(key_func=get_remote_address)
 
+
 @router.post("/register", response_model=Dict[str, str], status_code=status.HTTP_201_CREATED)
 @rate_limiter.limit("3/minute")
 async def register(
@@ -48,15 +50,15 @@ async def register(
 ) -> Dict[str, str]:
     """
     Register a new user with secure password hashing and validation.
-    
+
     Args:
         request: FastAPI request object
         user_data: User registration data
         db: MongoDB database instance
-        
+
     Returns:
         Dict containing success message
-        
+
     Raises:
         HTTPException: For registration failures
     """
@@ -69,7 +71,7 @@ async def register(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
             )
-        
+
         # Create user document
         user_dict = {
             "email": user_data.email,
@@ -81,10 +83,10 @@ async def register(
             "is_active": True,
             "role": user_data.role if hasattr(user_data, "role") else "ADMIN"
         }
-        
+
         # Insert into database
         result = await db["users"].insert_one(user_dict)
-        
+
         # Log successful registration
         security_logger.log_security_event(
             "user_registration",
@@ -94,9 +96,9 @@ async def register(
                 "ip_address": request.client.host
             }
         )
-        
+
         return {"message": "User registered successfully"}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -105,6 +107,7 @@ async def register(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error during registration"
         )
+
 
 @router.post("/login")
 @rate_limiter.limit("5/minute")
@@ -116,32 +119,32 @@ async def login(
 ) -> Dict:
     """
     Secure endpoint for user authentication with rate limiting and security logging.
-    
+
     Args:
         request: FastAPI request object
         credentials: User login credentials
         response: FastAPI response object
         db: MongoDB database instance
-        
+
     Returns:
         Dict containing access token, refresh token and user data
-        
+
     Raises:
         HTTPException: For various authentication failures
     """
     try:
         # Get client IP for security tracking
         client_ip = request.client.host
-        
+
         # Initialize auth service
         auth_service = AuthService(db)
-        
+
         # Authenticate user
         auth_result = await auth_service.authenticate_user(
             email=credentials.email,
             password=credentials.password
         )
-        
+
         # Set secure cookie headers
         response.set_cookie(
             key="refresh_token",
@@ -151,19 +154,19 @@ async def login(
             samesite="strict",
             max_age=604800  # 7 days
         )
-        
+
         # Set security headers
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
+
         return {
             "accessToken": auth_result["accessToken"],
             # "tokenExpires": auth_result["tokenExpires"],
             # "token_type": "bearer",
             "user": auth_result["user"]
         }
-        
+
     except HTTPException as e:
         if e.status_code == status.HTTP_401_UNAUTHORIZED:
             raise HTTPException(
@@ -178,6 +181,7 @@ async def login(
             detail="Internal server error during authentication"
         )
 
+
 @router.post("/refresh")
 @rate_limiter.limit("10/minute")
 async def refresh_token_endpoint(
@@ -187,15 +191,15 @@ async def refresh_token_endpoint(
 ) -> Dict:
     """
     Secure endpoint for token refresh with enhanced validation.
-    
+
     Args:
         request: FastAPI request object
         response: FastAPI response object
         db: MongoDB database instance
-        
+
     Returns:
         Dict containing new access token
-        
+
     Raises:
         HTTPException: For invalid or expired refresh tokens
     """
@@ -207,20 +211,20 @@ async def refresh_token_endpoint(
                 status_code=401,
                 detail="Refresh token missing"
             )
-        
+
         # Validate refresh token
         payload = await validate_refresh_token(refresh_token)
-        
+
         # Initialize auth service
         auth_service = AuthService(db)
-        
+
         # Generate new tokens
         auth_result = await auth_service.authenticate_user(
             email=payload["email"],
             password=None,
             refresh=True
         )
-        
+
         # Set new refresh token cookie
         response.set_cookie(
             key="refresh_token",
@@ -230,17 +234,17 @@ async def refresh_token_endpoint(
             samesite="strict",
             max_age=604800  # 7 days
         )
-        
+
         # Set security headers
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
+
         return {
             "access_token": auth_result["access_token"],
             "token_type": "bearer"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -249,6 +253,7 @@ async def refresh_token_endpoint(
             status_code=500,
             detail="Internal server error during token refresh"
         )
+
 
 @router.post("/logout")
 async def logout(
@@ -259,41 +264,52 @@ async def logout(
 ) -> Dict:
     """
     Secure endpoint for user logout with token invalidation.
-    
+
     Args:
         request: FastAPI request object
         response: FastAPI response object
         logout_data: Optional logout request data containing refresh token
         current_user: Currently authenticated user (optional)
-        
+
     Returns:
         Dict containing logout confirmation
-        
+
     Raises:
         HTTPException: For logout failures
     """
     try:
         # Get tokens for invalidation
-        access_token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        settings = get_settings()
+        access_token = request.headers.get(
+            "Authorization", "").replace("Bearer ", "")
         refresh_token = request.cookies.get("refresh_token")
-        
+
         # Get refresh token from request body if provided
         if logout_data and logout_data.refresh_token:
             refresh_token = logout_data.refresh_token
-        
+
         # Revoke tokens if they exist
+        revocation_successful = True
         if access_token:
             try:
-                await revoke_token(access_token, "access")
+                revoked = await revoke_token(access_token, "access")
+                if not revoked:
+                    logger.warning("Access token revocation unsuccessful")
+                    revocation_successful = False
             except Exception as e:
                 logger.warning(f"Error revoking access token: {str(e)}")
-        
+                revocation_successful = False
+
         if refresh_token:
             try:
-                await revoke_token(refresh_token, "refresh")
+                revoked = await revoke_token(refresh_token, "refresh")
+                if not revoked:
+                    logger.warning("Refresh token revocation unsuccessful")
+                    revocation_successful = False
             except Exception as e:
                 logger.warning(f"Error revoking refresh token: {str(e)}")
-        
+                revocation_successful = False
+
         # Clear secure cookie
         response.delete_cookie(
             key="refresh_token",
@@ -301,20 +317,30 @@ async def logout(
             secure=True,
             samesite="strict"
         )
-        
+
         # Set security headers
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
+
+        security_logger.log_security_event(
+            "user_logout",
+            {
+                "success": True,
+                "redis_enabled": settings.USE_REDIS,
+                "tokens_revoked": revocation_successful
+            }
+        )
+
         return {"message": "Successfully logged out"}
-        
+
     except Exception as e:
         logger.error(f"Logout error: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="Internal server error during logout"
         )
+
 
 @router.get("/debug/check-user/{email}")
 async def check_user(
@@ -336,6 +362,7 @@ async def check_user(
             detail=f"Error checking user: {str(e)}"
         )
 
+
 @router.post("/debug/fix-user-fields/{email}")
 async def fix_user_fields(
     email: str,
@@ -353,7 +380,7 @@ async def fix_user_fields(
                 }
             }
         )
-        
+
         # Check if user was updated
         if result.modified_count > 0:
             # Get updated user data
@@ -361,9 +388,9 @@ async def fix_user_fields(
             if user_dict:
                 user_dict["_id"] = str(user_dict["_id"])
                 return {"message": "User fields updated successfully", "user_data": user_dict}
-        
+
         return {"message": "No user was updated"}
-        
+
     except Exception as e:
         logger.error(f"Error updating user fields: {str(e)}")
         raise HTTPException(
